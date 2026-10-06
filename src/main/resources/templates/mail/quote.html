@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title th:text="'Rathin quotation ' + ${mail.quoteNumber()}">Rathin quotation</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#1e293b;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;">
+          <tr>
+            <td style="background:#0057b8;color:#fff;border-radius:12px 12px 0 0;padding:20px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <img th:src="${mail.logoUrl()}" alt="Rathin" width="140" style="display:block;border:0;max-width:140px;height:auto;"/>
+                    <div style="opacity:.85;font-size:13px;margin-top:8px;">GroupBookingLA quotation</div>
+                  </td>
+                  <td align="right" style="vertical-align:top;">
+                    <div style="font-size:11px;letter-spacing:.08em;font-weight:700;">QUOTATION</div>
+                    <div style="font-size:18px;font-weight:800;" th:text="${mail.quoteNumber()}">QTE</div>
+                    <div style="opacity:.85;font-size:12px;">Issued <span th:text="${mail.issuedOn()}">date</span></div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#fff;border:1px solid #e2e8f0;border-top:0;padding:22px 24px 8px;border-radius:0 0 12px 12px;">
+              <p style="margin:0 0 4px;">Prepared by <strong th:text="${mail.preparedBy()}">Rathin</strong><span th:if="${mail.companyName() != null and !mail.companyName().isBlank()}" th:text="' · ' + ${mail.companyName()}"></span></p>
+              <p style="margin:0 0 8px;color:#64748b;font-size:13px;" th:if="${mail.guestEmail() != null and !mail.guestEmail().isBlank()}">
+                For <span th:text="${mail.guestName()}">Guest</span> · <span th:text="${mail.guestEmail()}">email</span>
+              </p>
+              <p style="margin:0 0 18px;color:#64748b;font-size:13px;">This is a quotation, not a confirmed booking. Rates are valid until <span th:text="${mail.expireDateLabel()}">date</span>. The PDF copy is attached.</p>
+              <table role="presentation" width="100%" cellpadding="10" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
+                <thead>
+                  <tr style="background:#f1f5f9;color:#64748b;text-transform:uppercase;letter-spacing:.04em;font-size:11px;">
+                    <th align="left">Item</th>
+                    <th align="left">Details</th>
+                    <th align="left">Guests</th>
+                    <th align="right" th:text="'Amount (' + ${mail.currency()} + ')'">Amount (AED)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr th:each="line : ${mail.lines()}">
+                    <td>
+                      <strong th:text="${line.name()}">Item</strong><br/>
+                      <span style="color:#64748b;font-size:12px;" th:text="${line.kindLabel()}">Park</span>
+                    </td>
+                    <td>
+                      <th:block th:each="part, iterStat : ${#strings.listSplit(line.details(), '\n')}">
+                        <span th:text="${part}">detail</span>
+                        <br th:if="${!iterStat.last}"/>
+                      </th:block>
+                    </td>
+                    <td th:text="${line.guests()}">guests</td>
+                    <td style="text-align:right;color:#0057b8;font-weight:700;white-space:nowrap;" th:text="${line.amount()}">0.00</td>
+                  </tr>
+                </tbody>
+              </table>
+              <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="margin-top:16px;font-size:14px;">
+                <tr>
+                  <td>Subtotal</td>
+                  <td align="right"><strong th:text="${mail.subtotal()}">0.00</strong></td>
+                </tr>
+                <tr>
+                  <td>Platform charge</td>
+                  <td align="right"><strong th:text="${mail.markup()}">0.00</strong></td>
+                </tr>
+                <tr style="background:#0057b8;color:#fff;font-size:16px;">
+                  <td style="padding:10px 8px;">Grand total</td>
+                  <td align="right" style="padding:10px 8px;"><strong th:text="${mail.total()}">0.00</strong></td>
+                </tr>
+              </table>
+<!--              <p style="color:#94a3b8;font-size:12px;margin:22px 0 8px;">Rathin · groupbooking.chitaranjan.com</p>-->
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

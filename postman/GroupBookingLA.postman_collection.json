@@ -1,0 +1,2962 @@
+{
+  "info": {
+    "name": "GroupBookingLA API",
+    "description": "REST API of the GroupBookingLA backend.\n\nHow to use:\n1. Start the backend (profile `dev` or `h2`) and pick the \"GroupBookingLA - Local\" environment.\n2. Run \"Auth / Login as Super Admin\" first. Postman keeps the session cookie, so later requests are signed in.\n3. Requests save ids for the next ones (quoteNumber, bookingRef, itemId, companyId, ...), so run a folder top to bottom.\n\nErrors come back as JSON: {\"error\": \"message\"} with 400 (bad input), 401 (not signed in / not allowed), 404 (not found) or 409 (conflict).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "adminEmail",
+      "value": "Admin@rathin.com"
+    },
+    {
+      "key": "adminPassword",
+      "value": "R@t@2023"
+    },
+    {
+      "key": "quoteNumber",
+      "value": ""
+    },
+    {
+      "key": "bookingRef",
+      "value": ""
+    },
+    {
+      "key": "bookingItemId",
+      "value": ""
+    },
+    {
+      "key": "itemId",
+      "value": ""
+    },
+    {
+      "key": "companyId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "slideId",
+      "value": ""
+    },
+    {
+      "key": "otp",
+      "value": ""
+    },
+    {
+      "key": "registerEmail",
+      "value": "new.agency@example.com"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Sign in and sign out. Run \"Login as Super Admin\" first.",
+      "item": [
+        {
+          "name": "Login as Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Signs in and stores the session cookie. `remember: \"true\"` keeps the session for 30 days.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"remember\": \"true\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Who am I",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Registration (new company)",
+      "description": "Run top to bottom: register, verify the OTP, then approve as Super Admin.",
+      "item": [
+        {
+          "name": "Register company (JSON)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Quick registration. Returns the OTP in test/dev (RUZINN_OTP_ECHO=true); in production it is only emailed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"New Agency\",\n  \"userName\": \"New Admin\",\n  \"email\": \"{{registerEmail}}\",\n  \"phone\": \"+971500000001\",\n  \"password\": \"NewAgency1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set(\"otp\", data.otp);",
+                  "pm.collectionVariables.set(\"companyId\", data.companyId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-otp"
+              ]
+            },
+            "description": "Signs the new user in. The company stays pending until a Super Admin approves it. Note: this replaces the current session - log in as Super Admin again afterwards.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{registerEmail}}\",\n  \"otp\": \"{{otp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Super Admin again",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Verify OTP signed in the new user; switch back to the Super Admin before approving.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"remember\": \"true\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve the new company",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/companies/{{companyId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "companies",
+                "{{companyId}}",
+                "approve"
+              ]
+            },
+            "description": "The company becomes ACTIVE and its users can book.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Documents checked\",\n  \"creditLimit\": \"5000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register company with documents (multipart)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Full registration: all profile fields are required. Choose the three files in Postman before sending.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "companyName",
+                  "value": "Coastal Travels",
+                  "type": "text"
+                },
+                {
+                  "key": "userName",
+                  "value": "Lina Owner",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "lina@coastal.example",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "+971500000333",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "CoastalPass1",
+                  "type": "text"
+                },
+                {
+                  "key": "registrationNo",
+                  "value": "CN-77881",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "Sheikh Zayed Road",
+                  "type": "text"
+                },
+                {
+                  "key": "website",
+                  "value": "https://coastal.example",
+                  "type": "text"
+                },
+                {
+                  "key": "country",
+                  "value": "United Arab Emirates",
+                  "type": "text"
+                },
+                {
+                  "key": "city",
+                  "value": "Dubai",
+                  "type": "text"
+                },
+                {
+                  "key": "zipCode",
+                  "value": "00000",
+                  "type": "text"
+                },
+                {
+                  "key": "ownerTelephone",
+                  "value": "+97143000001",
+                  "type": "text"
+                },
+                {
+                  "key": "operationsStaffName",
+                  "value": "Sam Ops",
+                  "type": "text"
+                },
+                {
+                  "key": "operationsStaffNumber",
+                  "value": "+971500000334",
+                  "type": "text"
+                },
+                {
+                  "key": "financeName",
+                  "value": "Finance Desk",
+                  "type": "text"
+                },
+                {
+                  "key": "financeMobile",
+                  "value": "+971500000335",
+                  "type": "text"
+                },
+                {
+                  "key": "financeTelephone",
+                  "value": "+97143000002",
+                  "type": "text"
+                },
+                {
+                  "key": "financeEmail",
+                  "value": "accounts@coastal.example",
+                  "type": "text"
+                },
+                {
+                  "key": "vatCertificate",
+                  "type": "file",
+                  "src": [],
+                  "description": "VAT certificate (PDF)"
+                },
+                {
+                  "key": "licence",
+                  "type": "file",
+                  "src": [],
+                  "description": "Trade licence (PDF)"
+                },
+                {
+                  "key": "logo",
+                  "type": "file",
+                  "src": [],
+                  "description": "Company logo (JPG/PNG)"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set(\"otp\", data.otp);",
+                  "pm.collectionVariables.set(\"companyId\", data.companyId);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Parks - Catalog and Quotes",
+      "description": "Everything needed to build and price an itinerary.",
+      "item": [
+        {
+          "name": "Catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/catalog",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "catalog"
+              ]
+            },
+            "description": "Countries, parks, hotels and prices. Use the item ids in quotes."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Exchange rates (ROE)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/roe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "roe"
+              ]
+            },
+            "description": "AED is the base currency."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Booking party",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/booking-party",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "booking-party"
+              ]
+            },
+            "description": "Companies and users a parent company can book for."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Time slots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/timeslots?itemId=burj-khalifa-at-the-top-level-124-non-prime&date=2026-12-10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "timeslots"
+              ],
+              "query": [
+                {
+                  "key": "itemId",
+                  "value": "burj-khalifa-at-the-top-level-124-non-prime"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-12-10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create / update quote",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "quote"
+              ]
+            },
+            "description": "Prices the itinerary and saves it. Add \"quoteNumber\" to update an existing quote. \"currency\" can be AED, USD or INR.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adults\": 1,\n  \"children\": 0,\n  \"markupPercent\": 0,\n  \"country\": \"UAE\",\n  \"currency\": \"AED\",\n  \"leadName\": \"Test Guest\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+971500000000\",\n  \"items\": [\n    {\n      \"itemId\": \"dubai-frame\",\n      \"visitDate\": \"2026-12-10\",\n      \"adults\": 1,\n      \"children\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);",
+                  "pm.collectionVariables.set(\"quoteNumber\", pm.response.json().quoteNumber);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quote PDF",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/quote/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "quote",
+                "pdf"
+              ]
+            },
+            "description": "Returns the PDF. In Postman use \"Send and Download\".",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adults\": 1,\n  \"children\": 0,\n  \"markupPercent\": 0,\n  \"country\": \"UAE\",\n  \"currency\": \"AED\",\n  \"leadName\": \"Test Guest\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+971500000000\",\n  \"items\": [\n    {\n      \"itemId\": \"dubai-frame\",\n      \"visitDate\": \"2026-12-10\",\n      \"adults\": 1,\n      \"children\": 0\n    }\n  ],\n  \"quoteNumber\": \"{{quoteNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Email quote",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/quote/send",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "quote",
+                "send"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adults\": 1,\n  \"children\": 0,\n  \"markupPercent\": 0,\n  \"country\": \"UAE\",\n  \"currency\": \"AED\",\n  \"leadName\": \"Test Guest\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+971500000000\",\n  \"items\": [\n    {\n      \"itemId\": \"dubai-frame\",\n      \"visitDate\": \"2026-12-10\",\n      \"adults\": 1,\n      \"children\": 0\n    }\n  ],\n  \"quoteNumber\": \"{{quoteNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Parks - Checkout",
+      "description": "Creating bookings.",
+      "item": [
+        {
+          "name": "Confirm booking (card)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "confirm"
+              ]
+            },
+            "description": "Validates passengers and card, takes the (mock) payment and records the booking. Parks that need passenger details require items[].passengers.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adults\": 1,\n  \"children\": 0,\n  \"markupPercent\": 0,\n  \"country\": \"UAE\",\n  \"currency\": \"AED\",\n  \"leadName\": \"Test Guest\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+971500000000\",\n  \"items\": [\n    {\n      \"itemId\": \"dubai-frame\",\n      \"visitDate\": \"2026-12-10\",\n      \"adults\": 1,\n      \"children\": 0\n    }\n  ],\n  \"paymentMethod\": \"CARD\",\n  \"cardName\": \"Test Guest\",\n  \"cardNumber\": \"4242424242424242\",\n  \"cardExpiry\": \"09/28\",\n  \"cardCvc\": \"123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);",
+                  "pm.collectionVariables.set(\"bookingRef\", pm.response.json().bookingRef);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm booking (company credit)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "confirm"
+              ]
+            },
+            "description": "Charges the company credit (see \"Company Bookings / Company credit\").",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adults\": 1,\n  \"children\": 0,\n  \"markupPercent\": 0,\n  \"country\": \"UAE\",\n  \"currency\": \"AED\",\n  \"leadName\": \"Test Guest\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+971500000000\",\n  \"items\": [\n    {\n      \"itemId\": \"dubai-frame\",\n      \"visitDate\": \"2026-12-10\",\n      \"adults\": 1,\n      \"children\": 0\n    }\n  ],\n  \"paymentMethod\": \"CREDIT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);",
+                  "pm.collectionVariables.set(\"bookingRef\", pm.response.json().bookingRef);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm booking with passenger details",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "confirm"
+              ]
+            },
+            "description": "Add-on parks list their required fields in quote.items[].passengerFields; send them in passengers[].extra.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adults\": 1,\n  \"children\": 0,\n  \"markupPercent\": 0,\n  \"country\": \"UAE\",\n  \"currency\": \"AED\",\n  \"leadName\": \"Test Guest\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+971500000000\",\n  \"items\": [\n    {\n      \"itemId\": \"xline-dubai-marina\",\n      \"visitDate\": \"2026-12-10\",\n      \"adults\": 1,\n      \"children\": 0,\n      \"passengers\": [\n        {\n          \"type\": \"ADULT\",\n          \"firstName\": \"Sam\",\n          \"lastName\": \"Rider\",\n          \"extra\": {\n            \"passport\": \"P1234567\",\n            \"dateOfBirth\": \"1994-04-12\",\n            \"age\": \"32\"\n          }\n        }\n      ]\n    }\n  ],\n  \"paymentMethod\": \"CARD\",\n  \"cardName\": \"Test Guest\",\n  \"cardNumber\": \"4242424242424242\",\n  \"cardExpiry\": \"09/28\",\n  \"cardCvc\": \"123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Record booking without payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/book",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "book"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adults\": 1,\n  \"children\": 0,\n  \"markupPercent\": 0,\n  \"country\": \"UAE\",\n  \"currency\": \"AED\",\n  \"leadName\": \"Test Guest\",\n  \"email\": \"guest@example.com\",\n  \"phone\": \"+971500000000\",\n  \"items\": [\n    {\n      \"itemId\": \"dubai-frame\",\n      \"visitDate\": \"2026-12-10\",\n      \"adults\": 1,\n      \"children\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);",
+                  "pm.collectionVariables.set(\"bookingRef\", pm.response.json().bookingRefNum);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get booking by reference",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parks/bookings/{{bookingRef}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "parks",
+                "bookings",
+                "{{bookingRef}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Company Quotes",
+      "description": "Saved quotes of the signed-in company.",
+      "item": [
+        {
+          "name": "List quotes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/quotes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "quotes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get quote",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/quotes/{{quoteNumber}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "quotes",
+                "{{quoteNumber}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update quote status",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/quotes/{{quoteNumber}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "quotes",
+                "{{quoteNumber}}",
+                "status"
+              ]
+            },
+            "description": "Set \"ACCEPTED\" to turn the quote into a booking (response contains bookingRefNum).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDING\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update quote follow-up",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/quotes/{{quoteNumber}}/follow-up",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "quotes",
+                "{{quoteNumber}}",
+                "follow-up"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"followUp\": \"Call customer tomorrow\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Company Bookings",
+      "description": "Child companies can view; parent-company users can also change bookings.",
+      "item": [
+        {
+          "name": "List bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "bookings"
+              ]
+            },
+            "description": "Parent companies may add ?companyId=... to filter."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get booking",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/bookings/{{bookingRef}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "bookings",
+                "{{bookingRef}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);",
+                  "const details = pm.response.json().details || [];",
+                  "if (details.length) pm.collectionVariables.set(\"bookingItemId\", details[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Company credit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/credit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "credit"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update booking status",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/bookings/{{bookingRef}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "bookings",
+                "{{bookingRef}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update item status",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/bookings/{{bookingRef}}/items/{{bookingItemId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "bookings",
+                "{{bookingRef}}",
+                "items",
+                "{{bookingItemId}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update item follow-up",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/bookings/{{bookingRef}}/items/{{bookingItemId}}/follow-up",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "bookings",
+                "{{bookingRef}}",
+                "items",
+                "{{bookingItemId}}",
+                "follow-up"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"followUp\": \"Waiting on supplier voucher\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload item document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/bookings/{{bookingRef}}/items/{{bookingItemId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "bookings",
+                "{{bookingRef}}",
+                "items",
+                "{{bookingItemId}}",
+                "documents"
+              ]
+            },
+            "description": "Upload the ticket first; voucher/visa after that.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "kind",
+                  "value": "ticket",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "PDF or image"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload booking document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/bookings/{{bookingRef}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "bookings",
+                "{{bookingRef}}",
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "kind",
+                  "value": "voucher",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "PDF or image"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download item document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/company/bookings/{{bookingRef}}/items/{{bookingItemId}}/documents/ticket",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "company",
+                "bookings",
+                "{{bookingRef}}",
+                "items",
+                "{{bookingItemId}}",
+                "documents",
+                "ticket"
+              ]
+            },
+            "description": "Use \"preferred\" as kind for the best available document."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download booking document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/company/bookings/{{bookingRef}}/documents/preferred",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "company",
+                "bookings",
+                "{{bookingRef}}",
+                "documents",
+                "preferred"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Company admins manage their users; the Super Admin manages all users.",
+      "item": [
+        {
+          "name": "List company users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "users"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create company user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "users"
+              ]
+            },
+            "description": "role: COMPANY_USER or COMPANY_ADMIN. The Super Admin may add \"companyId\".",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"New Agent\",\n  \"email\": \"new.agent@example.com\",\n  \"password\": \"AgentPass1\",\n  \"role\": \"COMPANY_USER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);",
+                  "pm.collectionVariables.set(\"userId\", pm.response.json().userId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List all users (Super Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Block user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}/block",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{userId}}",
+                "block"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unblock user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}/unblock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{userId}}",
+                "unblock"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset user password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{userId}}",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NewPass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin - Companies",
+      "description": "Super Admin: review registrations.",
+      "item": [
+        {
+          "name": "List companies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/companies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "companies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Company directory (with users)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/companies/directory",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "companies",
+                "directory"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject company (instead of approving)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/companies/{{companyId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "companies",
+                "{{companyId}}",
+                "reject"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Missing licence\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload company logo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/companies/{{companyId}}/logo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "companies",
+                "{{companyId}}",
+                "logo"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "logo",
+                  "type": "file",
+                  "src": [],
+                  "description": "JPG or PNG"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download registration document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/companies/{{companyId}}/documents/vat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "companies",
+                "{{companyId}}",
+                "documents",
+                "vat"
+              ]
+            },
+            "description": "kind: vat or licence."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Company logo image",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/companies/{{companyId}}/logo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "companies",
+                "{{companyId}}",
+                "logo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin - Items",
+      "description": "Super Admin: parks, hotels and other bookable items.",
+      "item": [
+        {
+          "name": "List items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/items?q=Dubai",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Dubai"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create item",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "items"
+              ]
+            },
+            "description": "datedType: DA (any date) or DT (time slots). bookingInfo: DFT (lead contact) or ADD_ON (passenger fields from extraFields).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemName\": \"Postman Test Park\",\n  \"country\": \"UAE\",\n  \"datedType\": \"DA\",\n  \"category\": \"Park\",\n  \"adultRate\": \"120\",\n  \"childRate\": \"60\",\n  \"bookingInfo\": \"DFT\",\n  \"apiTimeslot\": false,\n  \"apiBooking\": false,\n  \"extraFields\": [],\n  \"description\": \"Created from Postman\",\n  \"termsAndCondition\": \"\",\n  \"included\": \"\",\n  \"excluded\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);",
+                  "pm.collectionVariables.set(\"itemId\", pm.response.json().itemId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get item",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "items",
+                "{{itemId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update item",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "items",
+                "{{itemId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemName\": \"Postman Test Park\",\n  \"country\": \"UAE\",\n  \"datedType\": \"DA\",\n  \"category\": \"Park\",\n  \"adultRate\": \"130\",\n  \"childRate\": \"65\",\n  \"bookingInfo\": \"DFT\",\n  \"description\": \"Updated from Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload item images",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/items/{{itemId}}/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "items",
+                "{{itemId}}",
+                "images"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "imagePdfFile",
+                  "type": "file",
+                  "src": [],
+                  "description": "Image shown in the quote PDF"
+                },
+                {
+                  "key": "imageTicketFile",
+                  "type": "file",
+                  "src": [],
+                  "description": "Image shown on the ticket"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Item image",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/items/{{itemId}}/image/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "items",
+                "{{itemId}}",
+                "image",
+                "pdf"
+              ]
+            },
+            "description": "kind: pdf or ticket."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get item translation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/items/{{itemId}}/translations/hi",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "items",
+                "{{itemId}}",
+                "translations",
+                "hi"
+              ]
+            },
+            "description": "lang: en, hi, ar, ru."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Save item translation",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/items/{{itemId}}/translations/hi",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "items",
+                "{{itemId}}",
+                "translations",
+                "hi"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemName\": \"पोस्टमैन टेस्ट पार्क\",\n  \"description\": \"हिंदी विवरण\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download Excel template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/items/template",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "items",
+                "template"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bulk upload Excel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/items/upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "items",
+                "upload"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Filled-in Excel template (.xlsx)"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "items",
+                "{{itemId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin - Exchange rates",
+      "description": "",
+      "item": [
+        {
+          "name": "Save rates",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/roe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "roe"
+              ]
+            },
+            "description": "Rates from 1 AED.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usdRate\": 0.2723,\n  \"inrRate\": 22.7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Translations and Sign-in page",
+      "description": "Public text for the Angular app, and the Super Admin editors.",
+      "item": [
+        {
+          "name": "UI translations (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/i18n?lang=en",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "i18n"
+              ],
+              "query": [
+                {
+                  "key": "lang",
+                  "value": "en"
+                }
+              ]
+            },
+            "description": "lang: en, hi, ar, ru."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign-in page content (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/login-home?lang=en",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login-home"
+              ],
+              "query": [
+                {
+                  "key": "lang",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Translation editor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/cms?lang=hi",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "cms"
+              ],
+              "query": [
+                {
+                  "key": "lang",
+                  "value": "hi"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Save translations",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/cms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "cms"
+              ]
+            },
+            "description": "Empty values fall back to English.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lang\": \"hi\",\n  \"values\": {\n    \"nav.quotes\": \"कोट\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign-in page editor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/login-home?lang=en",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "login-home"
+              ],
+              "query": [
+                {
+                  "key": "lang",
+                  "value": "en"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);",
+                  "const slides = pm.response.json().slides || [];",
+                  "if (slides.length) pm.collectionVariables.set(\"slideId\", slides[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Slide image (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/login-home/media/slides/{{slideId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login-home",
+                "media",
+                "slides",
+                "{{slideId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Save sign-in page",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/login-home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "login-home"
+              ]
+            },
+            "description": "For lang \"en\" this saves the page itself (send all slides you want to keep - load them with the editor first). For other languages it saves translations only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lang\": \"en\",\n  \"productName\": \"GROUPBOOKINGLA\",\n  \"productPill\": \"B2B company group booking\",\n  \"panelTagline\": \"Travel Together\",\n  \"signInTitle\": \"Sign In\",\n  \"signInSubtitle\": \"Please enter your credentials to sign in!\",\n  \"registerLabel\": \"Register\",\n  \"footerCopy\": \"© 2026 Weegootour. All rights reserved.\",\n  \"termsHref\": \"#terms\",\n  \"privacyHref\": \"#privacy\",\n  \"supportHref\": \"#support\",\n  \"slides\": [],\n  \"features\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add slide",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/login-home/slides",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "login-home",
+                "slides"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload slide image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/login-home/slides/{{slideId}}/image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "login-home",
+                "slides",
+                "{{slideId}}",
+                "image"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "JPG or PNG"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete slide",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/login-home/slides/{{slideId}}/delete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "login-home",
+                "slides",
+                "{{slideId}}",
+                "delete"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Audit history",
+      "description": "Who changed what, and when.",
+      "item": [
+        {
+          "name": "Booking history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/audit/bookings/{{bookingRef}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "audit",
+                "bookings",
+                "{{bookingRef}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Booking item history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/audit/bookings/{{bookingRef}}/items/{{bookingItemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "audit",
+                "bookings",
+                "{{bookingRef}}",
+                "items",
+                "{{bookingItemId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quote history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/audit/quotes/{{quoteNumber}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "audit",
+                "quotes",
+                "{{quoteNumber}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/audit/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "audit",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Company history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/company/audit/companies/{{companyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "company",
+                "audit",
+                "companies",
+                "{{companyId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Company history (Super Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/audit/companies/{{companyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "audit",
+                "companies",
+                "{{companyId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User history (Super Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/audit/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "audit",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign-in page history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/audit/login-home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "audit",
+                "login-home"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Item history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/audit/items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "audit",
+                "items",
+                "{{itemId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 2xx\", () => pm.response.to.be.success);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

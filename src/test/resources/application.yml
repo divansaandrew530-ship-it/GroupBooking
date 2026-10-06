@@ -1,0 +1,38 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 10MB
+  datasource:
+    url: jdbc:h2:mem:ruzinn-test;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+server:
+  forward-headers-strategy: framework
+  tomcat:
+    max-part-count: 1000
+    max-swallow-size: 10MB
+
+ruzinn:
+  auth:
+    otp-echo: true
+    super-admin-email: Admin@rathin.com
+    super-admin-password: "R@t@2023"
+  uploads:
+    directory: target/test-uploads
+  mail:
+    # Tests never send real mail.
+    provider: log
+    host:
+    from: ruzinn123@gmail.com
+    site-url: https://13.202.214.183/

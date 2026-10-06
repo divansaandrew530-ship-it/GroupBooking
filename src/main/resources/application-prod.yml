@@ -1,0 +1,42 @@
+# Local development database (gitignored: contains your MySQL password).
+# The dev profile is used automatically when no other profile is chosen.
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/group-rathin-prod?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&allowPublicKeyRetrieval=true&sslMode=DISABLED
+    username: dbuser
+    password: ${RUZINN_DB_PASSWORD:}
+
+server:
+  port: 8082
+
+logging:
+  level:
+    com.ruzinn: INFO
+  file:
+    name: ${RUZINN_LOG_DIR:logs}/groupbookingla-prod.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${RUZINN_LOG_DIR:logs}/groupbookingla-prod-%d{yyyy-MM-dd}.%i.log.gz
+
+ruzinn:
+  catalog:
+    # Offer only items created in Item Master, not the bundled experiences.json price list.
+    include-price-list: false
+  auth:
+    # Never return the OTP in API responses in production; it is only emailed.
+    otp-echo: false
+  mail:
+    # Microsoft 365. auto uses Graph once the three graph values are filled in, otherwise SMTP.
+    provider: auto
+    from-name: Rathin
+    site-url: https://quotebooke.com
+    graph:
+      tenant-id: 258a1dc4-bbee-4c3d-97d1-d85d76eaf657
+      client-id: d6421e3b-1fad-4d40-85ff-a72764c7b066
+      client-secret: ${RUZINN_MAIL_GRAPH_CLIENT_SECRET:}
+    host: smtp.office365.com
+    port: 587
+    starttls: true
+    username: group@ruzinn.com
+    password: ${RUZINN_MAIL_PASSWORD:}
+    from: group@ruzinn.com
